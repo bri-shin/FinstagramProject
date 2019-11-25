@@ -1,5 +1,12 @@
-# finstagram-template
-Instructions to run:
+# FinstagramProject
+
+<i> CS-UY 3083 Final Project </i>
+
+Seung Heon Brian Shin
+Alex Wuqi Zhang
+
+
+### Instructions to run:
 ```
 pip install -r requirements
 python app.py
