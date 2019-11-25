@@ -50,7 +50,8 @@ def home():
         cursor = connection.cursor()
         cursor.execute(query, session['username'])      # not 100% the syntax goes like this. session["username"]
         contentitems = cursor.fetchall()
-    return render_template("home.html", username=session["username"])
+        cursor.close()
+    return render_template("home.html", username=session["username"], contentitems = contentitems)
 
 @app.route("/upload", methods=["GET"])
 @login_required
