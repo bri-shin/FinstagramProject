@@ -1,14 +1,6 @@
-CREATE TABLE Person(
-    username VARCHAR(20), 
-    password CHAR(64), 
-    fname VARCHAR(20),
-    lname VARCHAR(20),
-    PRIMARY KEY (username)
-);
+# 3.1 Query to find photoIDs of photos that are visible to the user whose username
 
-CREATE TABLE Photo(
-    photoID int NOT NULL AUTO_INCREMENT,
-    timestamp Timestamp,
-    filePath VARCHAR(2048),
-    PRIMARY KEY (photoID)
-);
+SELECT photoID
+FROM Photo JOIN Person ON (Photo.photoPoster = Person.username)
+WHERE allFollowers = True AND username in (SELECT username_follower FROM Follow WHERE username_followed = Photo.photoPoster)
+    OR username in (SELECT member_username FROM BelongTo NATURAL JOIN SharedWith WHERE SharedWith.photoID = Photo.photoID)
