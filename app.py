@@ -1,10 +1,13 @@
 from flask import Flask, render_template, request, session, redirect, url_for, send_file
+# from flask_table import Table, Col
+import json
 import os
 import uuid
 import hashlib
 import pymysql.cursors
 from functools import wraps
 import time
+from table import Results
 
 app = Flask(__name__)
 app.secret_key = "super secret key"
@@ -43,16 +46,17 @@ def home():
         # display photos visible to user.
         username = session['username']  # checked: correctly retrieves username
         query = '''
-                SELECT photoID, postingdate, filepath
+                SELECT photoID, photoPoster
                 FROM Photo
                 WHERE allFollowers = True AND %s in (SELECT username_follower FROM Follow WHERE username_followed = Photo.photoPoster)
                     OR %s in (SELECT member_username FROM BelongTo NATURAL JOIN SharedWith WHERE SharedWith.photoID = Photo.photoID)
                 ORDER BY postingdate DESC
                 '''
         cursor.execute(query, (username, username))
-        # cursor.execute(query)
     contentitems = cursor.fetchall()
-    return render_template("home.html", username=session['username'], contentitems=contentitems)
+    table = Results(contentitems)
+    table.border = True
+    return render_template("home.html", username=session['username'], table=table)
 
 
 @app.route("/upload", methods=["GET"])
