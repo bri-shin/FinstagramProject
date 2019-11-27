@@ -157,7 +157,7 @@ def upload_image():
         filepath = os.path.join(IMAGES_DIR, image_name)
         image_file.save(filepath)
         # query = "INSERT INTO photo (timestamp, filePath) VALUES (%s, %s)"
-        query = "INSERT INTO photo (postingtime, filePath) VALUES (%s, %s)"
+        query = "INSERT INTO photo (postingdate, filePath) VALUES (%s, %s)"
         with connection.cursor() as cursor:
             cursor.execute(query, (time.strftime(
                 '%Y-%m-%d %H:%M:%S'), image_name))
