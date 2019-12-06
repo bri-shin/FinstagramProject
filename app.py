@@ -7,7 +7,7 @@ import hashlib
 import pymysql.cursors
 from functools import wraps
 import time
-from table import Results
+from table import Results, followTable
 
 app = Flask(__name__)
 app.secret_key = "super secret key"
@@ -166,6 +166,51 @@ def upload_image():
     else:
         message = "Failed to upload image."
         return render_template("upload.html", message=message)
+
+
+@app.route("/follow", methods=["GET"])
+def follow():
+    currentUser = session['username']
+    query = "SELECT username_followed, username_follower FROM Follow WHERE %s=username_followed and followstatus=0"
+    with connection.cursor() as cursor:
+        cursor.execute(query, (currentUser))
+    contentitems = cursor.fetchall()
+    # print(contentitems)           # Working
+    table = followTable(contentitems)
+    table.border = True
+    return render_template("follow.html", table=table)
+
+
+@app.route("/followAuth", methods=["POST"])
+def followAuth():
+    if request.form:
+        requestData = request.form
+        toFollow = requestData["username"]
+        currentUser = session['username']
+        # Sending a follow request
+        query = "INSERT INTO Follow (username_followed, username_follower, followstatus) VALUES (%s, %s, 0)"
+
+        with connection.cursor() as cursor:
+            cursor.execute(query, (toFollow, currentUser))
+
+        return render_template("follow.html")
+
+
+@app.route("/followAccept/<username>", methods=['GET', 'POST'])
+def followAccept(username):
+    currentUser = session['username']
+    query = "UPDATE Follow SET followstatus=1 WHERE username_followed=%s and username_follower=%s and followstatus=0"
+    with connection.cursor() as cursor:
+        cursor.execute(query,(currentUser,username))
+    return render_template("followAccept.html")
+
+@app.route("/followAuth/<username>", methods=['GET', 'POST'])
+def followDecline(username):
+    currentUser = session['username']
+    query = "DELETE FROM Follow WHERE username_followed=%s and username_follower=%s and followstatus=0"
+    with connection.cursor() as cursor:
+        cursor.execute(query,(currentUser,username))
+    return render_template("followDecline.html", username=username)
 
 
 if __name__ == "__main__":

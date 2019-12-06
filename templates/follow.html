@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Finstagram</title>
+  </head>
+  <body>
+    <h1>The Follow RequestPage</h1>
+    <br />
+    <p>Please type in the username of the user that you want to follow:</p>
+    <form action="/followAuth" method="post">
+      <input type="text" name="username" placeholder="Username" />
+      <br />
+      <input type="submit" value="Follow" />
+    </form>
+    <br />
+    <div class="followTable">
+      <p>Here is your follow requests from other users:</p>
+      <!-- <form action="/followVerify" method="post"></form> -->
+      {{table}}
+    </div>
+    <a href="/">Go back</a>
+  </body>
+</html>
