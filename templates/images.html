@@ -1,13 +1,22 @@
 <html>
+  <link
+    href="{{ url_for('static',filename='css/images.css') }}"
+    rel="stylesheet"
+    type="text/css"
+  />
   <head>
     <title>Finstagram</title>
   </head>
   <body>
     <h1>Image Gallery</h1>
-    <div>
+    <div class="gallery">
       {% for image in images %}
-
-      <img src="/images/{{images.filePath}}" width="300" />
+      <div class="photo">
+        <img src="/images/{{images.filePath}}" width="300" />
+        <p>Photo Poster: {{image.photoPoster}}</p>
+        <p>Posted Date: {{image.postingdate}}</p>
+        <!-- need to add tagged and likes -->
+      </div>
       {% endfor %}
     </div>
     <a href="/">Go back</a>

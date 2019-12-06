@@ -1,0 +1,9 @@
+.gallery {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.photo {
+  padding-bottom: 10px;
+}

@@ -129,7 +129,7 @@ def registerAuth():
 
         try:
             with connection.cursor() as cursor:
-                query = "INSERT INTO person (username, password, fname, lname) VALUES (%s, %s, %s, %s)"
+                query = "INSERT INTO Person (username, password, fname, lname) VALUES (%s, %s, %s, %s)"
                 cursor.execute(
                     query, (username, hashedPassword, firstName, lastName))
         except pymysql.err.IntegrityError:
@@ -171,4 +171,5 @@ def upload_image():
 if __name__ == "__main__":
     if not os.path.isdir("images"):
         os.mkdir(IMAGES_DIR)
-    app.run(use_reloader=True)
+    app.run()
+    # app.run(use_reloader=True)
