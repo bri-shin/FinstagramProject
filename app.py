@@ -9,6 +9,7 @@ from functools import wraps
 import time
 from table import Results, followTable
 
+
 app = Flask(__name__)
 app.secret_key = "super secret key"
 IMAGES_DIR = os.path.join(os.getcwd(), "images")
@@ -18,7 +19,7 @@ connection = pymysql.connect(host="localhost",
                              password="root",
                              db="finsta",
                              charset="utf8mb4",
-                             port=3306,
+                             port=8889,
                              cursorclass=pymysql.cursors.DictCursor,
                              autocommit=True)
 
@@ -58,11 +59,23 @@ def home():
     table.border = True
     return render_template("home.html", username=session['username'], table=table)
 
+# december 6 5pm working version
+# @app.route("/upload", methods=["GET"])
+# @login_required
+# def upload():
+#     return render_template("upload.html")
 
 @app.route("/upload", methods=["GET"])
 @login_required
 def upload():
-    return render_template("upload.html")
+    with connection.cursor() as cursor:
+        username = session['username']
+        query = '''
+            SELECT groupName FROM BelongTo WHERE member_username = %s
+        '''
+        cursor.execute(query, (username))
+    group_names = cursor.fetchall()
+    return render_template("upload.html", group_names = group_names)
 
 
 @app.route("/images", methods=["GET"])
@@ -90,6 +103,31 @@ def login():
 @app.route("/register", methods=["GET"])
 def register():
     return render_template("register.html")
+
+
+#UNHASHED
+# @app.route("/loginAuth", methods=["POST"])
+# def loginAuth():
+#     if request.form:
+#         requestData = request.form
+#         username = requestData["username"]
+#         plaintextPasword = requestData["password"]
+#         # hashedPassword = hashlib.sha256(
+#         #     plaintextPasword.encode("utf-8")).hexdigest()
+#
+#         with connection.cursor() as cursor:
+#             query = "SELECT * FROM person WHERE username = %s AND password = %s"
+#             cursor.execute(query, (username, plaintextPasword))
+#         data = cursor.fetchone()
+#         if data:
+#             session["username"] = username
+#             return redirect(url_for("home"))
+#
+#         error = "Incorrect username or password."
+#         return render_template("login.html", error=error)
+#
+#     error = "An unknown error has occurred. Please try again."
+#     return render_template("login.html", error=error)
 
 
 @app.route("/loginAuth", methods=["POST"])
@@ -148,21 +186,70 @@ def logout():
     return redirect("/")
 
 
+# december 6 5pm working version
+# @app.route("/uploadImage", methods=["POST"])
+# @login_required
+# def upload_image():
+#     if request.files:
+#         image_file = request.files.get("imageToUpload", "")
+#         image_name = image_file.filename
+#         filepath = os.path.join(IMAGES_DIR, image_name)
+#         image_file.save(filepath)
+#         # query = "INSERT INTO photo (timestamp, filePath) VALUES (%s, %s)"
+#         query = "INSERT INTO photo (postingdate, filePath) VALUES (%s, %s)"
+#         with connection.cursor() as cursor:
+#             cursor.execute(query, (time.strftime(
+#                 '%Y-%m-%d %H:%M:%S'), image_name))
+#         message = "Image has been successfully uploaded."
+#         return render_template("upload.html", message=message)
+#     else:
+#         message = "Failed to upload image."
+#         return render_template("upload.html", message=message)
+
 @app.route("/uploadImage", methods=["POST"])
 @login_required
 def upload_image():
+    username = session['username']
     if request.files:
         image_file = request.files.get("imageToUpload", "")
         image_name = image_file.filename
         filepath = os.path.join(IMAGES_DIR, image_name)
         image_file.save(filepath)
-        # query = "INSERT INTO photo (timestamp, filePath) VALUES (%s, %s)"
-        query = "INSERT INTO photo (postingdate, filePath) VALUES (%s, %s)"
-        with connection.cursor() as cursor:
-            cursor.execute(query, (time.strftime(
-                '%Y-%m-%d %H:%M:%S'), image_name))
-        message = "Image has been successfully uploaded."
-        return render_template("upload.html", message=message)
+        now = datetime.now()
+        if request.form:
+            visibility = int(request.form["visibility"])
+            visibility_boolean = True
+            if visibility == 1:
+                visibility_boolean = True
+            elif visibility == 2:
+                visibility_boolean = False
+            else:
+                message = "Error in visibility form parsing."
+                return render_template("upload.html", message=message)
+            query = "INSERT INTO photo (postingdate, filePath, allFollowers, photoPoster) VALUES (%s, %s, %r, %s)"
+            with connection.cursor() as cursor:
+                cursor.execute(query, (now.strftime('%Y-%m-%d %H:%M:%S'), image_name, visibility_boolean, username))
+
+            #############           NOTES          ############################################################
+            # The inputs for filepath, postingdate, allFollowers, photoposter, and groupName have all been received from the HTML. I'm having trouble parsing the input
+            # for groupName. A Friendgroup is defined by BOTH the groupName and the groupOwner and I need the photoID of the photo we just uploaded to insert into the
+            # SharedWith table. The groupName is selected by the user via upload.html. the GroupOwner and the PhotoID must be queried out somehow. My HTML files disconnected
+            # with my source code here for a while but it works now. If it happens to you, just restart your terminal. That's what fixed my shit.
+            ###################################################################################################
+
+            # with connection.cursor() as cursor:
+            #     query1 = "SELECT photoID FROM photo WHERE photoID = (SELECT MAX(photoID) FROM photo))"
+            #     cursor.execute(query1)
+            #     photo_id = cursor.fetchall()[0]
+            # with connection.cursor() as cursor:
+            #     g_name = request.form["g_names"]
+            #     query2 = "INSERT INTO SharedWith (groupName, groupOwner, photoID)"
+            #     cursor.execute(query2, ())
+            message = "Image has been successfully posted with visibility set to:"+str(visibility)
+            return render_template("upload.html", message=message)
+        else:
+            message = "Didn't select visibility option."
+            return render_template("upload.html", message=message)
     else:
         message = "Failed to upload image."
         return render_template("upload.html", message=message)
@@ -203,6 +290,7 @@ def followAccept(username):
     with connection.cursor() as cursor:
         cursor.execute(query,(currentUser,username))
     return render_template("followAccept.html")
+
 
 @app.route("/followAuth/<username>", methods=['GET', 'POST'])
 def followDecline(username):
