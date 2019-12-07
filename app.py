@@ -338,6 +338,39 @@ def displaySearch():
     return render_template("images.html", images=data)
 
 
+@app.route("/analytics", methods=['GET', 'POST'])
+def analytics():
+    with connection.cursor() as cursor:
+        # display photos visible to user.
+        username = session['username']  # checked: correctly retrieves username
+        query = '''
+        SELECT photoID, photoPoster, COUNT(photoID) as display_likes
+        FROM Photo
+        GROUP BY photoID
+        HAVING display_likes = (SELECT MAX(likes)
+            FROM (SELECT photoID, COUNT(photoID) AS likes
+                FROM Likes
+                GROUP BY photoID) AS t1
+            )
+        '''
+        cursor.execute(query)
+    results = cursor.fetchall()
+    table = Results(results)
+    table.border = True
+    return render_template("analytics.html", table = table)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     if not os.path.isdir("images"):
