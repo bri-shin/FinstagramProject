@@ -7,7 +7,7 @@ import hashlib
 import pymysql.cursors
 from functools import wraps
 import time
-import datetime
+from datetime import datetime
 from table import Results, followTable
 
 
@@ -21,7 +21,7 @@ connection = pymysql.connect(host="localhost",
                              password="root",
                              db="finsta",
                              charset="utf8mb4",
-                             port=3306,
+                             port=8889,
                              cursorclass=pymysql.cursors.DictCursor,
                              autocommit=True)
 
@@ -218,7 +218,7 @@ def upload_image():
         image_name = image_file.filename
         filepath = os.path.join(IMAGES_DIR, image_name)
         image_file.save(filepath)
-        now = datetime.datetime.now()
+        now = datetime.now()
         if request.form:
             visibility = int(request.form["visibility"])
 
@@ -233,7 +233,7 @@ def upload_image():
                 message = "Didn't select visibility option."
                 return render_template("upload.html", message=message)
             query = "INSERT INTO photo (postingdate, filePath, allFollowers, photoPoster) VALUES (%s, %s, %r, %s)"
-            
+
             with connection.cursor() as cursor:
                 cursor.execute(query, (now.strftime(
                     '%Y-%m-%d %H:%M:%S'), image_name, visibility, username))
@@ -241,7 +241,7 @@ def upload_image():
 
                     group_name = request.form["g_names"]  # checked
                     query1 = "SELECT photoID FROM photo WHERE photoID = (SELECT MAX(photoID) FROM photo)"
-                    
+
                     # Potential Issue here: there might be groups with the same name
                     query2 = "SELECT groupOwner FROM Friendgroup WHERE groupName=%s"
                     query3 = "INSERT INTO SharedWith (groupName, groupOwner, photoID) VALUES (%s,%s,%r)"
@@ -251,12 +251,12 @@ def upload_image():
                     groupOwner = cursor.fetchall()[0]
                     cursor.execute(
                         query3, (group_name, groupOwner["groupOwner"], photo_id["photoID"]))
-                
+
             message = "Image has been successfully posted with visibility set to: " + \
                 str(visibility)
             return render_template("uploadSuccess.html", message=message)
-            
-        else:    
+
+        else:
             message = "Didn't select visibility option."
             return render_template("upload.html", message=message)
     else:
@@ -308,6 +308,35 @@ def followDecline(username):
     with connection.cursor() as cursor:
         cursor.execute(query, (currentUser, username))
     return render_template("followDecline.html", username=username)
+
+
+@app.route("/search", methods=['GET', 'POST'])
+def search():
+    return render_template("search.html")
+
+
+@app.route("/displaySearch", methods=['GET', 'POST'])
+def displaySearch():
+    if request.form:
+        requestData = request.form
+        search_user = requestData["username"]
+    with connection.cursor() as cursor:
+        # display photos visible to user.
+        username = session['username']  # checked: correctly retrieves username
+        query = '''
+                SELECT *
+                FROM Photo
+                WHERE photoID IN
+                    (SELECT photoID
+                    FROM Photo
+                    WHERE allFollowers = True AND %s IN (SELECT username_follower FROM Follow WHERE username_followed = Photo.photoPoster)
+                        OR %s IN (SELECT member_username FROM BelongTo NATURAL JOIN SharedWith WHERE SharedWith.photoID = Photo.photoID))
+                AND photoPoster = %s
+                '''
+        cursor.execute(query, (username, username, search_user))
+    data = cursor.fetchall()
+    return render_template("images.html", images=data)
+
 
 
 if __name__ == "__main__":
