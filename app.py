@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for, send_file
+from flask import Flask, render_template, request, session, redirect, url_for, send_file, abort
 # from flask_table import Table, Col
 import json
 import os
@@ -7,7 +7,9 @@ import hashlib
 import pymysql.cursors
 from functools import wraps
 import time
+import datetime
 from table import Results, followTable
+
 
 
 app = Flask(__name__)
@@ -19,7 +21,7 @@ connection = pymysql.connect(host="localhost",
                              password="root",
                              db="finsta",
                              charset="utf8mb4",
-                             port=8889,
+                             port=3306,
                              cursorclass=pymysql.cursors.DictCursor,
                              autocommit=True)
 
@@ -65,6 +67,7 @@ def home():
 # def upload():
 #     return render_template("upload.html")
 
+
 @app.route("/upload", methods=["GET"])
 @login_required
 def upload():
@@ -75,7 +78,7 @@ def upload():
         '''
         cursor.execute(query, (username))
     group_names = cursor.fetchall()
-    return render_template("upload.html", group_names = group_names)
+    return render_template("upload.html", group_names=group_names)
 
 
 @app.route("/images", methods=["GET"])
@@ -105,7 +108,7 @@ def register():
     return render_template("register.html")
 
 
-#UNHASHED
+# UNHASHED
 # @app.route("/loginAuth", methods=["POST"])
 # def loginAuth():
 #     if request.form:
@@ -215,39 +218,45 @@ def upload_image():
         image_name = image_file.filename
         filepath = os.path.join(IMAGES_DIR, image_name)
         image_file.save(filepath)
-        now = datetime.now()
+        now = datetime.datetime.now()
         if request.form:
             visibility = int(request.form["visibility"])
-            visibility_boolean = True
-            if visibility == 1:
-                visibility_boolean = True
-            elif visibility == 2:
-                visibility_boolean = False
-            else:
-                message = "Error in visibility form parsing."
+
+            # ------- Not Needed Since allFollowers is already an int
+            # visibility_boolean = True
+            # if visibility == 1:
+            #     visibility_boolean = True
+            # elif visibility == 2:
+            #     visibility_boolean = False
+
+            if visibility != 0 and visibility != 1:
+                message = "Didn't select visibility option."
                 return render_template("upload.html", message=message)
             query = "INSERT INTO photo (postingdate, filePath, allFollowers, photoPoster) VALUES (%s, %s, %r, %s)"
+            
             with connection.cursor() as cursor:
-                cursor.execute(query, (now.strftime('%Y-%m-%d %H:%M:%S'), image_name, visibility_boolean, username))
+                cursor.execute(query, (now.strftime(
+                    '%Y-%m-%d %H:%M:%S'), image_name, visibility, username))
+                if visibility == 0:
 
-            #############           NOTES          ############################################################
-            # The inputs for filepath, postingdate, allFollowers, photoposter, and groupName have all been received from the HTML. I'm having trouble parsing the input
-            # for groupName. A Friendgroup is defined by BOTH the groupName and the groupOwner and I need the photoID of the photo we just uploaded to insert into the
-            # SharedWith table. The groupName is selected by the user via upload.html. the GroupOwner and the PhotoID must be queried out somehow. My HTML files disconnected
-            # with my source code here for a while but it works now. If it happens to you, just restart your terminal. That's what fixed my shit.
-            ###################################################################################################
-
-            # with connection.cursor() as cursor:
-            #     query1 = "SELECT photoID FROM photo WHERE photoID = (SELECT MAX(photoID) FROM photo))"
-            #     cursor.execute(query1)
-            #     photo_id = cursor.fetchall()[0]
-            # with connection.cursor() as cursor:
-            #     g_name = request.form["g_names"]
-            #     query2 = "INSERT INTO SharedWith (groupName, groupOwner, photoID)"
-            #     cursor.execute(query2, ())
-            message = "Image has been successfully posted with visibility set to:"+str(visibility)
-            return render_template("upload.html", message=message)
-        else:
+                    group_name = request.form["g_names"]  # checked
+                    query1 = "SELECT photoID FROM photo WHERE photoID = (SELECT MAX(photoID) FROM photo)"
+                    
+                    # Potential Issue here: there might be groups with the same name
+                    query2 = "SELECT groupOwner FROM Friendgroup WHERE groupName=%s"
+                    query3 = "INSERT INTO SharedWith (groupName, groupOwner, photoID) VALUES (%s,%s,%r)"
+                    cursor.execute(query1)
+                    photo_id = cursor.fetchall()[0]
+                    cursor.execute(query2, (group_name))
+                    groupOwner = cursor.fetchall()[0]
+                    cursor.execute(
+                        query3, (group_name, groupOwner["groupOwner"], photo_id["photoID"]))
+                
+            message = "Image has been successfully posted with visibility set to: " + \
+                str(visibility)
+            return render_template("uploadSuccess.html", message=message)
+            
+        else:    
             message = "Didn't select visibility option."
             return render_template("upload.html", message=message)
     else:
@@ -288,7 +297,7 @@ def followAccept(username):
     currentUser = session['username']
     query = "UPDATE Follow SET followstatus=1 WHERE username_followed=%s and username_follower=%s and followstatus=0"
     with connection.cursor() as cursor:
-        cursor.execute(query,(currentUser,username))
+        cursor.execute(query, (currentUser, username))
     return render_template("followAccept.html")
 
 
@@ -297,7 +306,7 @@ def followDecline(username):
     currentUser = session['username']
     query = "DELETE FROM Follow WHERE username_followed=%s and username_follower=%s and followstatus=0"
     with connection.cursor() as cursor:
-        cursor.execute(query,(currentUser,username))
+        cursor.execute(query, (currentUser, username))
     return render_template("followDecline.html", username=username)
 
 
