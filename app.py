@@ -8,7 +8,7 @@ import pymysql.cursors
 from functools import wraps
 import time
 from datetime import datetime
-from table import Results, followTable
+from table import Results, followTable, likeTable
 
 
 
@@ -21,7 +21,7 @@ connection = pymysql.connect(host="localhost",
                              password="root",
                              db="finsta",
                              charset="utf8mb4",
-                             port=8889,
+                             port=3306,
                              cursorclass=pymysql.cursors.DictCursor,
                              autocommit=True)
 
@@ -84,12 +84,67 @@ def upload():
 @app.route("/images", methods=["GET"])
 @login_required
 def images():
-    query = "SELECT * FROM photo"
+    username = session['username']
+    query = ''' SELECT * FROM photo 
+                WHERE allFollowers = True AND %s in (SELECT username_follower FROM Follow WHERE username_followed = Photo.photoPoster)
+                OR %s in (SELECT member_username FROM BelongTo NATURAL JOIN SharedWith WHERE SharedWith.photoID = Photo.photoID)
+    '''
+    
     with connection.cursor() as cursor:
-        cursor.execute(query)
-    data = cursor.fetchall()
+        cursor.execute(query,(username, username))
+        data = cursor.fetchall()
+
     return render_template("images.html", images=data)
 
+# @app.route("/images", methods=['POST'])
+# def like():
+#     if request.form:
+#         username = session['username']
+#         photoID = session['image.photoID']
+#         rating = request.form["rating"]
+#         now = datetime.now()
+#         with connection.cursor() as cursor:
+#             query = ''' INSERT INTO Like (username,photoID,liketime,rating)
+#                         VALUES (%s, %s, %s, %s)
+#             '''
+#             cursor.execute(query,(username, photoID,  now.strftime('%Y-%m-%d %H:%M:%S'),rating))
+
+#     return render_template("images.html")
+
+@app.route("/images/<photoID>", methods=["GET","POST"])
+def imageDetail(photoID):
+    username = session['username']
+    query = ''' SELECT * FROM photo 
+                WHERE photoID=%s
+    '''
+
+    # Potential Danger of forcing permission by access images through link
+    query2 = '''SELECT username, rating FROM Likes NATURAL JOIN photo 
+                WHERE photoID=%s
+    '''
+    with connection.cursor() as cursor:
+        cursor.execute(query,(photoID))
+        data = cursor.fetchall()[0]  
+        cursor.execute(query2,(photoID))
+        likes = cursor.fetchall()
+        table = likeTable(likes)
+    table.border = True
+    
+    
+    if request.form:
+        rating = request.form["rating"]
+        now = datetime.now()
+        print("This is the photoID:", photoID)
+        with connection.cursor() as cursor:
+            query = ''' INSERT INTO Likes (username,photoID,liketime,rating)
+                        VALUES (%s, %s, %s, %s)
+            '''
+            cursor.execute(query,(username, photoID,  now.strftime('%Y-%m-%d %H:%M:%S'),rating))
+
+        return redirect(url_for("imageDetail",photoID=photoID))
+
+    else:
+        return render_template("imageDetail.html", image=data, table = table, photoID=photoID)
 
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):
@@ -298,7 +353,7 @@ def followAccept(username):
     query = "UPDATE Follow SET followstatus=1 WHERE username_followed=%s and username_follower=%s and followstatus=0"
     with connection.cursor() as cursor:
         cursor.execute(query, (currentUser, username))
-    return render_template("followAccept.html")
+    return render_template("followAccept.html", username=username)
 
 
 @app.route("/followAuth/<username>", methods=['GET', 'POST'])
@@ -358,12 +413,6 @@ def analytics():
     table = Results(results)
     table.border = True
     return render_template("analytics.html", table = table)
-
-
-
-
-
-
 
 
 

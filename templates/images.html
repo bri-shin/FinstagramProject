@@ -12,9 +12,12 @@
     <div class="gallery">
       {% for image in images %}
       <div class="photo">
-        <img src="/images/{{images.filePath}}" width="300" />
+        <img src="/images/{{image.filePath}}" width="300" />
         <p>Photo Poster: {{image.photoPoster}}</p>
         <p>Posted Date: {{image.postingdate}}</p>
+        <a href="/images/{{image.photoID}}">View FurtherImage Details</a>
+      </div>
+        </div>
         <!-- need to add tagged and likes -->
       </div>
       {% endfor %}

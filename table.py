@@ -14,3 +14,8 @@ class followTable(Table):
                      url_kwargs=dict(username='username_follower'))
     decline = LinkCol('Decline', 'followDecline',
                       url_kwargs=dict(username='username_follower'))
+
+class likeTable(Table):
+    id = Col('Id', show=False)
+    username = Col("Username")
+    rating = Col("Rating (out of 10)")
