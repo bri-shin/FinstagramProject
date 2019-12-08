@@ -8,7 +8,7 @@ import pymysql.cursors
 from functools import wraps
 import time
 from datetime import datetime
-from table import Results, followTable, likeTable
+from table import Results, followTable, likeTable, Analytics_Reactions, Analytics_Rating, Tag_Table
 
 
 
@@ -21,7 +21,7 @@ connection = pymysql.connect(host="localhost",
                              password="root",
                              db="finsta",
                              charset="utf8mb4",
-                             port=3306,
+                             port=8889,
                              cursorclass=pymysql.cursors.DictCursor,
                              autocommit=True)
 
@@ -85,11 +85,11 @@ def upload():
 @login_required
 def images():
     username = session['username']
-    query = ''' SELECT * FROM photo 
+    query = ''' SELECT * FROM photo
                 WHERE allFollowers = True AND %s in (SELECT username_follower FROM Follow WHERE username_followed = Photo.photoPoster)
                 OR %s in (SELECT member_username FROM BelongTo NATURAL JOIN SharedWith WHERE SharedWith.photoID = Photo.photoID)
     '''
-    
+
     with connection.cursor() as cursor:
         cursor.execute(query,(username, username))
         data = cursor.fetchall()
@@ -114,23 +114,31 @@ def images():
 @app.route("/images/<photoID>", methods=["GET","POST"])
 def imageDetail(photoID):
     username = session['username']
-    query = ''' SELECT * FROM photo 
+    query = ''' SELECT * FROM photo
                 WHERE photoID=%s
     '''
 
     # Potential Danger of forcing permission by access images through link
-    query2 = '''SELECT username, rating FROM Likes NATURAL JOIN photo 
+    query2 = '''SELECT username, rating FROM Likes NATURAL JOIN photo
                 WHERE photoID=%s
+    '''
+    query3 = '''
+            SELECT username, fname, lname
+            FROM Tagged NATURAL JOIN Person
+            WHERE photoID = %s AND tagstatus = 1
     '''
     with connection.cursor() as cursor:
         cursor.execute(query,(photoID))
-        data = cursor.fetchall()[0]  
+        data = cursor.fetchall()[0]
         cursor.execute(query2,(photoID))
         likes = cursor.fetchall()
         table = likeTable(likes)
+        cursor.execute(query3, (photoID))
+        tagged = cursor.fetchall()
+        table1 = Tag_Table(tagged)
     table.border = True
-    
-    
+    table1.border = True
+
     if request.form:
         rating = request.form["rating"]
         now = datetime.now()
@@ -144,7 +152,7 @@ def imageDetail(photoID):
         return redirect(url_for("imageDetail",photoID=photoID))
 
     else:
-        return render_template("imageDetail.html", image=data, table = table, photoID=photoID)
+        return render_template("imageDetail.html", image=data, table = table, table1 = table1, photoID=photoID)
 
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):
@@ -400,7 +408,7 @@ def analytics():
         username = session['username']  # checked: correctly retrieves username
         query = '''
         SELECT photoID, photoPoster, COUNT(photoID) as display_likes
-        FROM Photo
+        FROM Photo NATURAL JOIN Likes
         GROUP BY photoID
         HAVING display_likes = (SELECT MAX(likes)
             FROM (SELECT photoID, COUNT(photoID) AS likes
@@ -408,11 +416,26 @@ def analytics():
                 GROUP BY photoID) AS t1
             )
         '''
+        query2 = '''
+        SELECT photoID, photoPoster, SUM(rating) as tot_rating
+        FROM Photo NATURAL JOIN Likes
+        GROUP BY photoID
+        HAVING tot_rating = (SELECT MAX(s_rating)
+            FROM (SELECT photoID, SUM(rating) AS s_rating
+                FROM Likes
+                GROUP BY photoID) AS t1
+            )
+        '''
         cursor.execute(query)
-    results = cursor.fetchall()
-    table = Results(results)
-    table.border = True
-    return render_template("analytics.html", table = table)
+        results1 = cursor.fetchall()
+        table1 = Analytics_Reactions(results1)
+        table1.border = True
+        cursor.execute(query2)
+        results2 = cursor.fetchall()
+        table2 = Analytics_Rating(results2)
+        table2.border = True
+        return render_template("analytics.html", table1 = table1, table2 = table2)
+
 
 
 
