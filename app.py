@@ -8,8 +8,7 @@ import pymysql.cursors
 from functools import wraps
 import time
 from datetime import datetime
-from table import Results, followTable, likeTable, Analytics_Reactions, Analytics_Rating, Tag_Table
-
+from table import Results, followTable, likeTable, Analytics_Reactions, Analytics_Rating, Tag_Table, commentTable
 
 
 app = Flask(__name__)
@@ -21,7 +20,7 @@ connection = pymysql.connect(host="localhost",
                              password="root",
                              db="finsta",
                              charset="utf8mb4",
-                             port=8889,
+                             port=3306,
                              cursorclass=pymysql.cursors.DictCursor,
                              autocommit=True)
 
@@ -91,7 +90,7 @@ def images():
     '''
 
     with connection.cursor() as cursor:
-        cursor.execute(query,(username, username))
+        cursor.execute(query, (username, username))
         data = cursor.fetchall()
 
     return render_template("images.html", images=data)
@@ -111,7 +110,8 @@ def images():
 
 #     return render_template("images.html")
 
-@app.route("/images/<photoID>", methods=["GET","POST"])
+
+@app.route("/images/<photoID>", methods=["GET", "POST"])
 def imageDetail(photoID):
     username = session['username']
     query = ''' SELECT * FROM photo
@@ -127,32 +127,70 @@ def imageDetail(photoID):
             FROM Tagged NATURAL JOIN Person
             WHERE photoID = %s AND tagstatus = 1
     '''
+
+    queryComment = '''SELECT username, comment
+                FROM Comments
+                WHERE photoID=%s
+    '''
+
     with connection.cursor() as cursor:
-        cursor.execute(query,(photoID))
+
+        # Finding Photo and Photo Information
+        cursor.execute(query, (photoID))
         data = cursor.fetchall()[0]
-        cursor.execute(query2,(photoID))
+
+        # Finding Ratings
+        cursor.execute(query2, (photoID))
         likes = cursor.fetchall()
         table = likeTable(likes)
+
+        # Finding Comments
+        cursor.execute(queryComment, (photoID))
+        comments = cursor.fetchall()
+        commentResults = commentTable(comments)
+        commentResults.border = True
+
+        # Finding Tags
         cursor.execute(query3, (photoID))
         tagged = cursor.fetchall()
         table1 = Tag_Table(tagged)
     table.border = True
     table1.border = True
 
-    if request.form:
+    if request.form and "rating" in request.form:
         rating = request.form["rating"]
         now = datetime.now()
-        print("This is the photoID:", photoID)
+
         with connection.cursor() as cursor:
-            query = ''' INSERT INTO Likes (username,photoID,liketime,rating)
+
+            # For Creating A Rating / Like
+            query4 = ''' INSERT INTO Likes (username,photoID,liketime,rating)
                         VALUES (%s, %s, %s, %s)
             '''
-            cursor.execute(query,(username, photoID,  now.strftime('%Y-%m-%d %H:%M:%S'),rating))
+            cursor.execute(query4, (username, photoID,
+                                    now.strftime('%Y-%m-%d %H:%M:%S'), rating))
 
-        return redirect(url_for("imageDetail",photoID=photoID))
+        return redirect(url_for("imageDetail", photoID=photoID))
+
+    if request.form and "userComment" in request.form:
+        now = datetime.now()
+        comment = request.form["userComment"]
+
+        with connection.cursor() as cursor:
+
+            # For Creating A Comment
+            query5 = ''' INSERT INTO Comments (username, photoID, commentTime, comment)
+                        VALUES (%s, %s, %s, %s)
+            '''
+
+            cursor.execute(query5, (username, photoID,
+                                    now.strftime('%Y-%m-%d %H:%M:%S'), comment))
+
+        return redirect(url_for("imageDetail", photoID=photoID))
 
     else:
-        return render_template("imageDetail.html", image=data, table = table, table1 = table1, photoID=photoID)
+        return render_template("imageDetail.html", image=data, table=table, table1=table1, photoID=photoID, commentResults=commentResults)
+
 
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):
@@ -434,14 +472,7 @@ def analytics():
         results2 = cursor.fetchall()
         table2 = Analytics_Rating(results2)
         table2.border = True
-        return render_template("analytics.html", table1 = table1, table2 = table2)
-
-
-
-
-
-
-
+        return render_template("analytics.html", table1=table1, table2=table2)
 
 
 if __name__ == "__main__":

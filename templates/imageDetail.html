@@ -18,27 +18,43 @@
         {{table}}
         <p>Tag Table:</p>
         {{table1}}
-        <div>
-          <form action="/images/{{photoID}}" method="post">
-            <select name="rating">
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-              <option value="8">8</option>
-              <option value="9">9</option>
-              <option value="10">10</option>
-            </select>
-            <br />
-            <input type="submit" value="Upload" action="/images/{{photoID}}" />
-          </form>
-        </div>
-        <!-- need to add tagged and likes -->
+        <br>
+        <form name="likeForm" action="/images/{{photoID}}" method="post">
+          <select name="rating">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+          <br />
+          <p>What is your rating for this Image?</p>
+          <input
+            name="likeForm"
+            type="submit"
+            value="Rate!"
+            action="/images/{{photoID}}"
+          />
+        </form>
+        <br />
+        <p>Comments:</p>
+        {{commentResults}}
+        <br />
+        <form name="commentForm" action="/images/{{photoID}}" method="post">
+          <p>Write your comment here:</p>
+          <input type="text" name="userComment" /><br />
+          <input name="commentForm" type="submit" value="Submit Comment" />
+        </form>
       </div>
+      <!-- need to add tagged and likes -->
     </div>
-    <a href="/images">Go back</a>
-  </body>
+  </div>
+  <a href="/images">Go back</a>
+</body>
 </html>
+
