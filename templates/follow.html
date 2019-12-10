@@ -4,7 +4,7 @@
     <title>Finstagram</title>
   </head>
   <body>
-    <h1>The Follow RequestPage</h1>
+    <h1>Follow Management Page</h1>
     <br />
     <p>Please type in the username of the user that you want to follow:</p>
     <form action="/followAuth" method="post">
@@ -13,9 +13,11 @@
       <input type="submit" value="Follow" />
     </form>
     <br />
+    <p>People you are currently following:</p>
+    {{followers}}
+    <hr />
     <div class="followTable">
       <p>Here is your follow requests from other users:</p>
-      <!-- <form action="/followVerify" method="post"></form> -->
       {{table}}
     </div>
     <a href="/">Go back</a>

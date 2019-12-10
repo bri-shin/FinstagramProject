@@ -8,7 +8,7 @@ import pymysql.cursors
 from functools import wraps
 import time
 from datetime import datetime
-from table import Results, followTable, likeTable, Analytics_Reactions, Analytics_Rating, Tag_Table, commentTable
+from table import Results, followTable, likeTable, Analytics_Reactions, Analytics_Rating, Tag_Table, commentTable, followerTable
 
 
 app = Flask(__name__)
@@ -118,7 +118,6 @@ def imageDetail(photoID):
                 WHERE photoID=%s
     '''
 
-    # Potential Danger of forcing permission by access images through link
     query2 = '''SELECT username, rating FROM Likes NATURAL JOIN photo
                 WHERE photoID=%s
     '''
@@ -385,14 +384,20 @@ def upload_image():
 @app.route("/follow", methods=["GET"])
 def follow():
     currentUser = session['username']
-    query = "SELECT username_followed, username_follower FROM Follow WHERE %s=username_followed and followstatus=0"
+    query = "SELECT username_followed, username_follower FROM Follow WHERE username_followed=%s and followstatus=0"
+    query2 = "SELECT username_followed FROM Follow WHERE username_follower = %s"
     with connection.cursor() as cursor:
         cursor.execute(query, (currentUser))
-    contentitems = cursor.fetchall()
-    # print(contentitems)           # Working
-    table = followTable(contentitems)
-    table.border = True
-    return render_template("follow.html", table=table)
+        contentitems = cursor.fetchall()
+        table = followTable(contentitems)
+        table.border = True
+
+        cursor.execute(query2, (currentUser))
+        followings = cursor.fetchall()
+        followers = followerTable(followings)
+        followers.border = True
+
+    return render_template("follow.html", table=table, followers=followers)
 
 
 @app.route("/followAuth", methods=["POST"])

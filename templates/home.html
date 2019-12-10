@@ -5,12 +5,12 @@
   <body>
     <h1>Hello, {{username}}!</h1>
     <div>
+      <h3>How can we help you today?</h3>
       <ul>
         <li><a href="/images">View Images</a></li>
         <li><a href="/search">Search Images by Poster Username</a></li>
         <li><a href="/upload">Upload an Image</a></li>
-        <li><a href="/logout">Logout</a></li>
-        <li><a href="/follow">Follow a User</a></li>
+        <li><a href="/follow">Manage Follows</a></li>
         <li><a href="/analytics">View Analytics</a></li>
       </ul>
     </div>
@@ -19,5 +19,7 @@
       <!-- <p>{{contentitems}}</p> -->
       {{ table }}
     </div>
+    <hr />
+    <a href="/logout">Logout</a>
   </body>
 </html>

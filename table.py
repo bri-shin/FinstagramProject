@@ -44,3 +44,7 @@ class commentTable(Table):
     id = Col('Id', show=False)
     username = Col("Username")
     comment = Col("Comments")
+
+
+class followerTable(Table):
+    username_followed = Col("Username")
