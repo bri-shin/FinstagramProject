@@ -14,12 +14,14 @@
         <img src="/images/{{image.filePath}}" width="300" />
         <p>Photo Poster: {{image["photoPoster"]}}</p>
         <p>Posted Date: {{image["postingdate"]}}</p>
-        <p>Rating Table:</p>
-        {{table}}
+        <hr>
         <p>Tag Table:</p>
         {{table1}}
         <br>
+        <hr>
+        <br>
         <form name="likeForm" action="/images/{{photoID}}" method="post">
+          <p>What is your rating for this Image?</p>
           <select name="rating">
             <option value="1">1</option>
             <option value="2">2</option>
@@ -33,7 +35,6 @@
             <option value="10">10</option>
           </select>
           <br />
-          <p>What is your rating for this Image?</p>
           <input
             name="likeForm"
             type="submit"
@@ -41,15 +42,18 @@
             action="/images/{{photoID}}"
           />
         </form>
+        <p>Rating Table:</p>
+        {{table}}
         <br />
-        <p>Comments:</p>
-        {{commentResults}}
+        <hr>
         <br />
         <form name="commentForm" action="/images/{{photoID}}" method="post">
           <p>Write your comment here:</p>
           <input type="text" name="userComment" /><br />
           <input name="commentForm" type="submit" value="Submit Comment" />
         </form>
+        <p>Comments:</p>
+        {{commentResults}}
       </div>
       <!-- need to add tagged and likes -->
     </div>

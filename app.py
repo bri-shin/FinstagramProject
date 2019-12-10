@@ -162,13 +162,30 @@ def imageDetail(photoID):
         now = datetime.now()
 
         with connection.cursor() as cursor:
+            # Check if user already gave a rating before
+            queryCheck = "SELECT username FROM Likes WHERE photoID=%s"
+            cursor.execute(queryCheck, (photoID))
+            existingNames = cursor.fetchall()
+            new = True
+            for names in existingNames:
+                if username in names['username']:
+                    new = False
 
-            # For Creating A Rating / Like
-            query4 = ''' INSERT INTO Likes (username,photoID,liketime,rating)
-                        VALUES (%s, %s, %s, %s)
-            '''
-            cursor.execute(query4, (username, photoID,
-                                    now.strftime('%Y-%m-%d %H:%M:%S'), rating))
+            if not new:
+                queryExist = '''UPDATE Likes
+                                Set rating=%s
+                                WHERE username=%s
+                '''
+
+                cursor.execute(queryExist, (rating, username))
+
+            else:
+                # For Creating A Rating / Like
+                query4 = ''' INSERT INTO Likes (username,photoID,liketime,rating)
+                            VALUES (%s, %s, %s, %s)
+                '''
+                cursor.execute(query4, (username, photoID,
+                                        now.strftime('%Y-%m-%d %H:%M:%S'), rating))
 
         return redirect(url_for("imageDetail", photoID=photoID))
 

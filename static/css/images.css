@@ -1,9 +1,10 @@
 .gallery {
   display: flex;
-  flex-direction: column;
+  /* flex-direction: row; */
   align-items: center;
 }
 
 .photo {
-  padding-bottom: 10px;
+  padding-bottom: 20px;
+  margin: auto;
 }
