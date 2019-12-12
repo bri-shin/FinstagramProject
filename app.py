@@ -85,7 +85,7 @@ def upload():
 def images():
     username = session['username']
     query = ''' SELECT * FROM photo
-                WHERE allFollowers = True AND %s in (SELECT username_follower FROM Follow WHERE username_followed = Photo.photoPoster)
+                WHERE allFollowers = True AND %s in (SELECT username_follower FROM Follow WHERE username_followed = Photo.photoPoster and followstatus=1)
                 OR %s in (SELECT member_username FROM BelongTo NATURAL JOIN SharedWith WHERE SharedWith.photoID = Photo.photoID)
     '''
 
@@ -94,21 +94,6 @@ def images():
         data = cursor.fetchall()
 
     return render_template("images.html", images=data)
-
-# @app.route("/images", methods=['POST'])
-# def like():
-#     if request.form:
-#         username = session['username']
-#         photoID = session['image.photoID']
-#         rating = request.form["rating"]
-#         now = datetime.now()
-#         with connection.cursor() as cursor:
-#             query = ''' INSERT INTO Like (username,photoID,liketime,rating)
-#                         VALUES (%s, %s, %s, %s)
-#             '''
-#             cursor.execute(query,(username, photoID,  now.strftime('%Y-%m-%d %H:%M:%S'),rating))
-
-#     return render_template("images.html")
 
 
 @app.route("/images/<photoID>", methods=["GET", "POST"])
@@ -173,10 +158,10 @@ def imageDetail(photoID):
             if not new:
                 queryExist = '''UPDATE Likes
                                 Set rating=%s
-                                WHERE username=%s
+                                WHERE username=%s and photoID=%s
                 '''
 
-                cursor.execute(queryExist, (rating, username))
+                cursor.execute(queryExist, (rating, username,photoID))
 
             else:
                 # For Creating A Rating / Like
