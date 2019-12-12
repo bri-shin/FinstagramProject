@@ -50,7 +50,7 @@ def home():
         query = '''
                 SELECT photoID, photoPoster
                 FROM Photo
-                WHERE allFollowers = True AND %s in (SELECT username_follower FROM Follow WHERE username_followed = Photo.photoPoster)
+                WHERE allFollowers = True AND %s in (SELECT username_follower FROM Follow WHERE username_followed = Photo.photoPoster and followstatus=1)
                     OR %s in (SELECT member_username FROM BelongTo NATURAL JOIN SharedWith WHERE SharedWith.photoID = Photo.photoID)
                 ORDER BY postingdate DESC
                 '''
