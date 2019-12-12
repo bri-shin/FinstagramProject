@@ -9,7 +9,6 @@ Alex Wuqi Zhang
 
 ### Instructions to run:
 ```
-pip install -r requirements
 python3 app.py
 
 Notes: 
@@ -18,4 +17,4 @@ Notes:
 
 ### For Project Submission
 
-The images of the current state of the app is included inside the "Screenshots" Folder
+The screen recordings is located within the "Screen Recordings" directory
